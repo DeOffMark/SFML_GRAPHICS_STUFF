@@ -11,6 +11,8 @@ public:
 	 void run();
 private:
 	int getIndex(int x, int y);
+	bool isRun;
+	float drawradius;
 	void handleEvents();
 	sf::RenderWindow mApp;
 	int mWidth, mHeight;
