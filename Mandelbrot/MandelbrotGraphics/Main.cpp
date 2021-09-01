@@ -41,6 +41,47 @@ int clamp(int value, int min, int max) {
 	return std::max(min, std::min(max, value));
 }
 
+void julianWindow(sf::Vector2f& julianSet) {
+	sf::RenderWindow jwin(sf::VideoMode(640, 480), "Julia Set Window");
+	jwin.setFramerateLimit(60);
+
+	sf::RenderTexture mandelTexture;
+	mandelTexture.create(640, 480);
+	sf::Sprite mandelSprite(mandelTexture.getTexture());
+
+	sf::Shader* julianShader = new sf::Shader();
+	julianShader->loadFromFile("fractal.glsl", sf::Shader::Fragment);
+	julianShader->setUniform("uPallete", pallete);
+	julianShader->setUniform("uScreenRes", sf::Glsl::Vec2(jwin.getSize()));
+	julianShader->setUniform("uIsMandelbrot", false);
+	julianShader->setUniform("uJuliaConsts", julianSet);
+	while (jwin.isOpen()) {
+		sf::Event event;
+		while (jwin.pollEvent(event)) {
+			switch (event.type) {
+			case sf::Event::Closed:
+				jwin.close();
+				break;
+			case sf::Event::KeyPressed:
+				if (event.key.code == sf::Keyboard::Escape) {
+					jwin.close();
+				}
+				break;
+			}
+		}
+		julianShader->setUniform("uOffSet", sf::Glsl::Vec2(0.5f, 0.f));
+		julianShader->setUniform("uScale", 1.0f);
+		julianShader->setUniform("uPallete", pallete);
+		julianShader->setUniform("uIterations", iterations);
+
+		
+		jwin.clear();
+		jwin.draw(mandelSprite, julianShader);
+		jwin.display();
+	}
+	
+}
+
 int main() {
 	sf::RenderWindow app(sf::VideoMode(W, H), "Fractal Viewer");
 	app.setFramerateLimit(60);
@@ -61,6 +102,9 @@ int main() {
 
 	sf::Vector2f boundaryS(-2.f, -1.f);
 	sf::Vector2f boundaryE(1.f, 1.f);
+
+	
+	
 	
 	while (app.isOpen()) {
 		//handle events
@@ -105,13 +149,26 @@ int main() {
 					
 					sf::Vector2f mousePos = { float(sf::Mouse::getPosition(app).x), float(H) - float(sf::Mouse::getPosition(app).y) };
 				
-					mousePos.x = (boundaryS.x + mousePos.x * (boundaryE.x - boundaryS.x) / float(W)) / scaleFactor;
-					mousePos.y = (boundaryS.y + mousePos.y * (boundaryE.y - boundaryS.y) / float(H)) / scaleFactor;
+					mousePos.x = (boundaryS.x + mousePos.x * (boundaryE.x - boundaryS.x) / float(W)) / scaleFactor + offSet.x;
+					mousePos.y = (boundaryS.y + mousePos.y * (boundaryE.y - boundaryS.y) / float(H)) / scaleFactor + offSet.y;
 					//FOR DEBUG ONLY
 					app.setTitle("Mouse pos: x = " + std::to_string(mousePos.x) + " y = " + std::to_string(mousePos.y));
-					offSet.x =  std::max(std::min(offSet.x + mousePos.x, boundaryE.x), boundaryS.x);
-					offSet.y =  std::max(std::min(offSet.y + mousePos.y, boundaryE.y), boundaryS.y);
+					offSet.x =  std::max(std::min( mousePos.x, boundaryE.x), boundaryS.x);
+					offSet.y =  std::max(std::min( mousePos.y, boundaryE.y), boundaryS.y);
 			
+				}
+				break;
+			case sf::Event::MouseButtonPressed:
+				if (!justOpened) {
+					if (event.mouseButton.button == sf::Mouse::Left) {
+						sf::Vector2f mousePos = { float(sf::Mouse::getPosition(app).x), float(H) - float(sf::Mouse::getPosition(app).y) };
+						mousePos.x = (boundaryS.x + mousePos.x * (boundaryE.x - boundaryS.x) / float(W)) / scaleFactor + offSet.x;
+						mousePos.y = (boundaryS.y + mousePos.y * (boundaryE.y - boundaryS.y) / float(H)) / scaleFactor + offSet.y;
+						isMandebrot = false;
+						sf::Thread julian(&julianWindow, mousePos);
+						julian.launch();
+						julian.wait();
+					}
 				}
 				break;
 			}

@@ -6,7 +6,7 @@ uniform int uPallete; // enum value for a color pallete
 uniform float uScale;
 uniform vec2 uOffSet; 
 
-void main(){
+void main() {
 
 	vec2 uv = gl_FragCoord;
 	vec2 Z; //complex number
